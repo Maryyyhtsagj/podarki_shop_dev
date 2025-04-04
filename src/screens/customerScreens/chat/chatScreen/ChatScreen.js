@@ -1,7 +1,7 @@
-import {useIsFocused} from '@react-navigation/native';
-import React, {useState, useEffect} from 'react';
-import {useSelector} from 'react-redux';
-import {styles} from './styles';
+import { useIsFocused } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { styles } from './styles';
 import {
     FlatList,
     Platform,
@@ -10,36 +10,36 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import {Colors, globalStyles, MessagesName} from '../../../../constants';
+import { Colors, globalStyles, MessagesName } from '../../../../constants';
 import {
     ChatData_,
     FinancialForm,
     globalHeight,
     globalWidth,
 } from '../../../../components';
-import {ChatForm} from '../../../../components/form/chatForm';
+import { ChatForm } from '../../../../components/form/chatForm';
 import axiosInstance from '../../../../networking/axiosInstance';
-import {getStatusBarHeight} from 'react-native-status-bar-height';
+import { getStatusBarHeight } from 'react-native-status-bar-height';
 
 const isToday = dateString => {
     const inputDate = new Date(dateString);
     const today = new Date();
-
-    // Приводим даты к локальному времени и обнуляем время
     const inputDay = new Date(inputDate).setHours(0, 0, 0, 0);
     const todayDay = new Date(today).setHours(0, 0, 0, 0);
-
     return inputDay === todayDay;
 };
-export const ChatScreen = ({navigation, route}) => {
-    const customerData = useSelector(st => st.customer)
+
+export const ChatScreen = ({ navigation, route }) => {
+    const customerData = useSelector(st => st.customer);
     const [active, setActive] = useState('За сегодня');
     const [data, setData] = useState([]);
     const [dataState, setDataState] = useState([]);
     const homeState = useSelector(state => state.homeState);
-    const isFocused = useIsFocused()
-    const sellerId = useSelector(state => state.user?.sellerId);
-
+    const isFocused = useIsFocused();
+    const sellerId = useSelector(state => {
+        console.log('Redux user state:', state.customer?._id);
+        return state.customer?._id;
+    });
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -49,68 +49,81 @@ export const ChatScreen = ({navigation, route}) => {
     }, [isFocused]);
 
     useEffect(() => {
-        if(!!homeState.messagesCount) {
+        if (homeState.messagesCount) {
             axiosFunc();
         }
-    }, [homeState.messagesCount])
+    }, [homeState.messagesCount]);
 
     const axiosFunc = async () => {
         try {
-            const response = await axiosInstance.get(`/chat/im`);
-            // const filterArr = response.data.filter((it) => it.priority === "admin");
+            setLoading(true);
+            const response = await axiosInstance.get('/chat/im');
+            console.log('Chat list response:', response.data);
             setData(response.data);
             changeStateFunc('За сегодня', response.data);
         } catch (e) {
-            console.log(e);
+            console.log('Error fetching chats:', e.message);
+            if (e.response) {
+                console.log('Error response:', e.response.status, e.response.data);
+            }
+        } finally {
             setLoading(false);
         }
     };
 
     const createAdminChat = async () => {
+        if (!sellerId) {
+            console.log('Error: sellerId is undefined');
+            return;
+        }
+
         try {
             setLoading(true);
-            const response = await axiosInstance.get(`/api/chat/is-created/admin?sellerId=${sellerId}`);
+            console.log('Checking/creating admin chat for sellerId:', sellerId);
+            const checkResponse = await axiosInstance.get(`/chat/is-created/admin`, {
+                params: { seller_id: sellerId },
+            });
 
-            if (response.data && response.data.chatId) {
+            console.log('Admin chat response:', checkResponse.data);
+
+            if (checkResponse.data && checkResponse.data.chatID) {
                 navigation.navigate(MessagesName, {
-                    item: response.data.chatData,
-                    state: true,
+                    item: {
+                        _id: checkResponse.data.chatID,
+                        chatID: checkResponse.data.chatID,
+                        priority: 'admin',
+                        date: new Date().toISOString(),
+                    },
+                    state: false,
                 });
+                await axiosFunc();
             } else {
-                const createResponse = await axiosInstance.post('/api/chat/create', {
-                    priority: 'admin',
-                    sellerId: sellerId
-                });
-
-                if (createResponse.data && createResponse.data.chatId) {
-                    await axiosFunc();
-                    navigation.navigate(MessagesName, {
-                        item: createResponse.data.chatData,
-                        state: true,
-                    });
-                }
+                console.log('No chatID returned from /chat/is-created/admin');
             }
-            setLoading(false);
         } catch (error) {
-            console.log('Error creating admin chat:', error);
+            console.log('Error creating admin chat:', error.message);
+            if (error.response) {
+                console.log('Error response:', error.response.status, error.response.data);
+            }
+        } finally {
             setLoading(false);
         }
     };
 
     const changeStateFunc = (st, dataFunc) => {
         setLoading(true);
-
-        // Создаем копию массива для иммутабельности
         const filteredData = [...dataFunc];
 
         switch (st) {
             case 'Тех.поддержка':
-                setDataState(filteredData.filter(it => it.priority === 'admin'));
+                setDataState([]);
                 break;
             case 'Все':
+                // Show all chats except the admin chat (if desired)
                 setDataState(filteredData);
                 break;
             case 'За сегодня':
+                // Show chats from today except the admin chat (if desired)
                 setDataState(filteredData.filter(it => isToday(it.date)));
                 break;
         }
@@ -123,7 +136,7 @@ export const ChatScreen = ({navigation, route}) => {
         <View
             style={[
                 globalStyles.container,
-                Platform.OS === 'ios' && {marginTop: -(getStatusBarHeight(true) + 8)},
+                Platform.OS === 'ios' && { marginTop: -(getStatusBarHeight(true) + 8) },
             ]}>
             <StatusBar
                 barStyle="dark-content"
@@ -143,7 +156,7 @@ export const ChatScreen = ({navigation, route}) => {
                         globalStyles.textAlignLeft,
                         globalStyles.weightBold,
                         globalStyles.titleTextBig,
-                        {paddingTop: Platform.OS === 'ios' ? globalHeight(10) : 0},
+                        { paddingTop: Platform.OS === 'ios' ? globalHeight(10) : 0 },
                     ]}>
                     Сообщения
                 </Text>
@@ -197,8 +210,8 @@ export const ChatScreen = ({navigation, route}) => {
             </View>
             <FlatList
                 data={dataState}
-                keyExtractor={(item) => item._id}
-                renderItem={({item}) => (
+                keyExtractor={item => item._id}
+                renderItem={({ item }) => (
                     <ChatForm
                         item={item}
                         navigation={navigation}

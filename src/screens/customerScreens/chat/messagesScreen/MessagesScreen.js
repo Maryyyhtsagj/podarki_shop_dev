@@ -1,5 +1,5 @@
-import React, {useState, useRef, useEffect} from 'react';
-import {styles} from './styles';
+import React, { useState, useRef, useEffect } from 'react';
+import { styles } from './styles';
 import {
   View,
   Text,
@@ -27,16 +27,14 @@ import {
 import axiosInstance from '../../../../networking/axiosInstance';
 import sendIcon from '../../../../assets/images/sendIcon.png';
 import ChatPlus from '../../../../assets/images/ChatPlus.png';
-import {checkTokens} from '../../../../utils';
-
+import { checkTokens } from '../../../../utils';
 import io from 'socket.io-client';
-
-import {useDispatch, useSelector} from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ImageView from 'react-native-image-viewing';
 
 let socketNew = null;
 
-export const MessagesScreen = ({navigation, route}) => {
+export const MessagesScreen = ({ navigation, route }) => {
   const [chat, setChat] = useState([]);
   const [addInput, setAddInput] = useState('');
   const [text, setText] = useState('');
@@ -61,7 +59,6 @@ export const MessagesScreen = ({navigation, route}) => {
       }
     };
   }, []);
-  const [loading, setLoading] = useState(false);
 
   const setTokFunc = async () => {
     setVisible(true);
@@ -71,11 +68,12 @@ export const MessagesScreen = ({navigation, route}) => {
   };
 
   const socketConnectFunc = token => {
+    const isAdminChat = user.priority === 'admin';
     socketNew = io(url1, {
       query: {
         token: token,
         seller_id: store._id,
-        buyer_id: user?.user_id?._id ? user.user_id._id : user._id,
+        ...(isAdminChat ? { role: 'seller', isAdminChat: true } : { buyer_id: user?.user_id?._id || user._id }),
         roomId: user.chatID,
       },
     });
@@ -97,7 +95,7 @@ export const MessagesScreen = ({navigation, route}) => {
       setVisible(false);
       setScrollToEnd(true);
       const lastMessageId = arr[arr.length - 1]?._id;
-      socketNew.emit('isRead', {message: lastMessageId, userToken: token, role: 'seller'});
+      socketNew.emit('isRead', { message: lastMessageId, userToken: token, role: 'seller' });
     });
 
     socketNew.on('new-message', newMessage => {
@@ -109,6 +107,7 @@ export const MessagesScreen = ({navigation, route}) => {
 
   const handleEve = mess => {
     if (addInput) {
+      const isAdminChat = user.priority === 'admin';
       const newMessage = {
         _id: `${Date.now()}`,
         text: mess,
@@ -120,10 +119,20 @@ export const MessagesScreen = ({navigation, route}) => {
         date: new Date().toISOString(),
       };
       setChat(prev => [...prev, newMessage]);
-      socketNew.emit('sendMessage', {text: mess});
+      socketNew.emit(
+          'sendMessage',
+          {
+            text: mess,
+            room_id: user.chatID,
+            role: 'seller',
+            ...(isAdminChat ? { isAdminChat: true } : { buyer_id: user?.user_id?._id || user._id }),
+          },
+          (response) => {
+            console.log('Server response to sendMessage:', response);
+          }
+      );
       setScrollToEnd(true);
       console.log('Message emitted:', newMessage);
-
     }
   };
 
@@ -143,6 +152,7 @@ export const MessagesScreen = ({navigation, route}) => {
       console.error('Error requesting camera permission:', err);
     }
   };
+
   return (
       <View style={styles.chatScrool}>
         <BackButton
@@ -170,26 +180,21 @@ export const MessagesScreen = ({navigation, route}) => {
                     style={[
                       styles.placeHolderImageViewText,
                       {
-                        alignItems:
-                            item.role !== 'user' || item.role === 'admin'
-                                ? 'flex-end'
-                                : 'flex-start',
+                        alignItems: item.role === 'seller' ? 'flex-end' : 'flex-start',
                       },
                     ]}
                     key={index}>
                   <View
                       style={[
                         styles.content,
-                        item.role !== 'user' || item.role === 'admin'
-                            ? styles.left
-                            : styles.right,
+                        item.role === 'seller' ? styles.left : styles.right,
                       ]}
                       key={index}>
                     {item.isImage ? (
                         <TouchableOpacity
                             onPress={() => {
                               if (!item.play) {
-                                setActiveImage([{uri: imageUrl + item.text}]);
+                                setActiveImage([{ uri: imageUrl + item.text }]);
                                 setActive(true);
                               }
                             }}>
@@ -220,7 +225,7 @@ export const MessagesScreen = ({navigation, route}) => {
                                 item.play = false;
                                 setChat([...chat]);
                               }}
-                              source={{uri: imageUrl + item.text}}
+                              source={{ uri: imageUrl + item.text }}
                               style={styles.imgMsg}
                           />
                         </TouchableOpacity>
@@ -230,7 +235,7 @@ export const MessagesScreen = ({navigation, route}) => {
                               style={[
                                 globalStyles.weightLight,
                                 globalStyles.titleTextBig,
-                                {color: 'white'},
+                                { color: 'white' },
                               ]}>
                             {item.text}
                           </Text>
@@ -256,12 +261,12 @@ export const MessagesScreen = ({navigation, route}) => {
         </ScrollView>
         <View style={styles.chatInputView}>
           {!state ? (
-              <TouchableOpacity
-                  onPress={requestCameraPermission}
-                  key="cameraButton">
+              <TouchableOpacity onPress={requestCameraPermission} key="cameraButton">
                 <Image source={ChatPlus} style={styles.chatPlusImg} />
               </TouchableOpacity>
-          ) : null}
+          ) : (
+              <View style={styles.chatPlusImg} />
+          )}
           <AppInput
               style={styles.textInputChat}
               value={addInput}

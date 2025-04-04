@@ -27,4 +27,5 @@ export const styles = StyleSheet.create({
   activeTextContent: {
     color: Colors.black,
   },
+
 });
