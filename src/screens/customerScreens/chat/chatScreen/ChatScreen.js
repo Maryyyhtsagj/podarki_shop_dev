@@ -37,7 +37,6 @@ export const ChatScreen = ({ navigation, route }) => {
     const homeState = useSelector(state => state.homeState);
     const isFocused = useIsFocused();
     const sellerId = useSelector(state => {
-        console.log('Redux user state:', state.customer?._id);
         return state.customer?._id;
     });
     const [loading, setLoading] = useState(false);
@@ -119,11 +118,9 @@ export const ChatScreen = ({ navigation, route }) => {
                 setDataState([]);
                 break;
             case 'Все':
-                // Show all chats except the admin chat (if desired)
                 setDataState(filteredData);
                 break;
             case 'За сегодня':
-                // Show chats from today except the admin chat (if desired)
                 setDataState(filteredData.filter(it => isToday(it.date)));
                 break;
         }

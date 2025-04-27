@@ -15,9 +15,7 @@ import {Colors, globalStyles} from '../../../../constants';
 import {
   ApplicationsData_,
   ApplicationsForm,
-  FilterData,
   FilterForm,
-  FormSubCategory,
   globalWidth,
 } from '../../../../components';
 import {useSelector} from 'react-redux';
@@ -25,6 +23,13 @@ import axiosInstance from '../../../../networking/axiosInstance';
 import {getStatusBarHeight} from 'react-native-status-bar-height';
 
 export const AplicationsScreen = ({navigation}) => {
+
+  const url = 'http://79.174.80.241:3001/api/socket/orders/seller'; //socket for upd orders
+
+  const sellerId = useSelector(state => {
+    return state.customer?._id;
+  });
+
   const store = useSelector(st => st.customer);
   const shop = store.active_store;
   const [orders, setOrders] = useState([]);
@@ -237,124 +242,124 @@ export const AplicationsScreen = ({navigation}) => {
     }
   };
   return (
-    <View
-      style={[
-        globalStyles.container,
-        Platform.OS === 'ios' && {marginTop: -(getStatusBarHeight(true) + 8)},
-      ]}>
-      <StatusBar
-        barStyle="dark-content"
-        hidden={false}
-        backgroundColor={Colors.blueBackground}
-      />
-      <View style={[styles.container]}>
-        <View
+      <View
           style={[
-            styles.headerContainer,
-            Platform.OS === 'ios' && {
-              paddingTop: getStatusBarHeight(true) + globalWidth(25),
-            },
+            globalStyles.container,
+            Platform.OS === 'ios' && {marginTop: -(getStatusBarHeight(true) + 8)},
           ]}>
-          <Text
-            style={[
-              globalStyles.titleText,
-              globalStyles.textAlignLeft,
-              globalStyles.weightBold,
-              globalStyles.titleTextBig,
-              styles.textZakaz,
-            ]}>
-            Заказы
-          </Text>
-          <View style={[globalStyles.row, styles.headerFooter]}>
-            <TouchableOpacity
-              style={active === 'Сегодня' && styles.activeText}
-              onPress={() => changeStateFunc('Сегодня')}>
-              <Text
-                style={[
-                  globalStyles.titleText,
-                  globalStyles.weightLight,
-                  globalStyles.titleTextSmall,
-                  styles.headerFooterText,
-                  active === 'Сегодня' && styles.activeTextContent,
-                ]}>
-                Сегодня
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={active === 'Завтра' && styles.activeText}
-              onPress={() => changeStateFunc('Завтра')}>
-              <Text
-                style={[
-                  globalStyles.titleText,
-                  globalStyles.weightLight,
-                  globalStyles.titleTextSmall,
-                  styles.headerFooterText,
-                  active === 'Завтра' && styles.activeTextContent,
-                ]}>
-                Завтра
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={active === 'Все' && styles.activeText}
-              onPress={() => changeStateFunc('Все')}>
-              <Text
-                style={[
-                  globalStyles.titleText,
-                  globalStyles.weightLight,
-                  globalStyles.titleTextSmall,
-                  styles.headerFooterText,
-                  active === 'Все' && styles.activeTextContent,
-                ]}>
-                Все
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <ScrollView
-          showsHorizontalScrollIndicator={false}
-          horizontal={true}
-          bounces={false}>
-          {sort.map((item, index) => {
-            return (
-              <FilterForm
-                st
-                item={item}
-                index={index}
-                key={index}
-                check={checkFilterSort}
-              />
-            );
-          })}
-        </ScrollView>
-      </View>
-      {Object.keys(ApplicationsData_).length ? (
-        <FlatList
-          data={orders}
-          renderItem={({item, index}) => {
-            return (
-              <ApplicationsForm
-                item={item}
-                key={index}
-                navigation={navigation}
-                orders={orders}
-                banner={banner}
-              />
-            );
-          }}
+        <StatusBar
+            barStyle="dark-content"
+            hidden={false}
+            backgroundColor={Colors.blueBackground}
         />
-      ) : (
-        <View>
-          <Text
-            style={[
-              globalStyles.titleText,
-              globalStyles.weightLight,
-              globalStyles.titleTextSmall,
-              styles.noDataText,
-            ]}>
-            Нет активных заказов, нажмите на фильтр “Все”
-          </Text>
+        <View style={[styles.container]}>
+          <View
+              style={[
+                styles.headerContainer,
+                Platform.OS === 'ios' && {
+                  paddingTop: getStatusBarHeight(true) + globalWidth(25),
+                },
+              ]}>
+            <Text
+                style={[
+                  globalStyles.titleText,
+                  globalStyles.textAlignLeft,
+                  globalStyles.weightBold,
+                  globalStyles.titleTextBig,
+                  styles.textZakaz,
+                ]}>
+              Заказы
+            </Text>
+            <View style={[globalStyles.row, styles.headerFooter]}>
+              <TouchableOpacity
+                  style={active === 'Сегодня' && styles.activeText}
+                  onPress={() => changeStateFunc('Сегодня')}>
+                <Text
+                    style={[
+                      globalStyles.titleText,
+                      globalStyles.weightLight,
+                      globalStyles.titleTextSmall,
+                      styles.headerFooterText,
+                      active === 'Сегодня' && styles.activeTextContent,
+                    ]}>
+                  Сегодня
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                  style={active === 'Завтра' && styles.activeText}
+                  onPress={() => changeStateFunc('Завтра')}>
+                <Text
+                    style={[
+                      globalStyles.titleText,
+                      globalStyles.weightLight,
+                      globalStyles.titleTextSmall,
+                      styles.headerFooterText,
+                      active === 'Завтра' && styles.activeTextContent,
+                    ]}>
+                  Завтра
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                  style={active === 'Все' && styles.activeText}
+                  onPress={() => changeStateFunc('Все')}>
+                <Text
+                    style={[
+                      globalStyles.titleText,
+                      globalStyles.weightLight,
+                      globalStyles.titleTextSmall,
+                      styles.headerFooterText,
+                      active === 'Все' && styles.activeTextContent,
+                    ]}>
+                  Все
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <ScrollView
+              showsHorizontalScrollIndicator={false}
+              horizontal={true}
+              bounces={false}>
+            {sort.map((item, index) => {
+              return (
+                  <FilterForm
+                      st
+                      item={item}
+                      index={index}
+                      key={index}
+                      check={checkFilterSort}
+                  />
+              );
+            })}
+          </ScrollView>
         </View>
-      )}
-    </View>
+        {Object.keys(ApplicationsData_).length ? (
+            <FlatList
+                data={orders}
+                renderItem={({item, index}) => {
+                  return (
+                      <ApplicationsForm
+                          item={item}
+                          key={index}
+                          navigation={navigation}
+                          orders={orders}
+                          banner={banner}
+                      />
+                  );
+                }}
+            />
+        ) : (
+            <View>
+              <Text
+                  style={[
+                    globalStyles.titleText,
+                    globalStyles.weightLight,
+                    globalStyles.titleTextSmall,
+                    styles.noDataText,
+                  ]}>
+                Нет активных заказов, нажмите на фильтр “Все”
+              </Text>
+            </View>
+        )}
+      </View>
   );
 };

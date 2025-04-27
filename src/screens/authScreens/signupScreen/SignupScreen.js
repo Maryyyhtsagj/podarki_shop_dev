@@ -577,9 +577,14 @@ export const SignupScreen = ({navigation, route}) => {
       setError('Укажите Email ');
     } else if (phone.length < 8) {
       setError('The Телефон you’ve entered is incorrect.');
-    } else if (!password || password !== repPassword || password.length < 8) {
+    } else if (!password) {
       setError('Укажите Пароль');
-    } else if (!dropDownstate) {
+    } else if (password.length < 8) {
+      setError('Пароль должен содержать минимум 8 символов');
+    } else if (password !== repPassword) {
+      setError('Пароли не совпадают');
+    }
+    else if (!dropDownstate) {
       setError('Укажите ИП / ООО/ Самозанятый');
     } else if (legalName.length <= 3) {
       setError('Укажите Юридическое название');
@@ -637,11 +642,12 @@ export const SignupScreen = ({navigation, route}) => {
   const axiosFunc = async (data, nav) => {
     setLoading(true);
     try {
+      let response;
       if (!Object.keys(user_data).length) {
-        console.log("reg", data)
-        const response = await axiosInstance.post(
-          '/users/register/seller',
-          data,
+        console.log("reg", data);
+        response = await axiosInstance.post(
+            '/users/register/seller',
+            data,
         );
         dispatch({
           type: SET_CUSTOMER,
@@ -650,25 +656,28 @@ export const SignupScreen = ({navigation, route}) => {
         await setTokens(response.data.token);
         console.log(response, 'post');
       } else {
-        const response = await axiosInstance.put('/users/sellers/try', data);
+        response = await axiosInstance.put('/users/sellers/try', data);
         dispatch({
           type: SET_CUSTOMER,
           payload: response.data.user_data,
         });
         console.log(response, 'put');
-        await setTokens(response.data.token);
       }
       await setState();
       let token = await checkTokens();
+      if (!token) {
+        throw new Error('Token not found');
+      }
       await postFcmToken(token);
       navigation.replace(nav, {data: pendingData});
       setLoading(false);
     } catch (e) {
       console.log(e, 'e');
-      setError(e.response?.data?.error);
+      setError(e.message || 'An error occurred');
       setLoading(false);
     }
   };
+
   const loginPageFunc = async () => {
     if (Object.keys(user_data).length) {
       await removeTokens();

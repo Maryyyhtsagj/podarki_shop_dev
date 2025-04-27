@@ -31,6 +31,7 @@ import { checkTokens } from '../../../../utils';
 import io from 'socket.io-client';
 import { useDispatch, useSelector } from 'react-redux';
 import ImageView from 'react-native-image-viewing';
+import AsyncStorage from "@react-native-community/async-storage";
 
 let socketNew = null;
 
@@ -83,29 +84,7 @@ export const MessagesScreen = ({ navigation, route }) => {
     getMessageFunc();
   };
 
-  const getMessageFunc = () => {
-    socketNew.on('messages', messages => {
-      const arr = messages.messages;
-      for (let i = 0; i < arr.length; i++) {
-        if (arr[i].isImage) {
-          arr[i].play = false;
-        }
-      }
-      setChat([...arr]);
-      setVisible(false);
-      setScrollToEnd(true);
-      const lastMessageId = arr[arr.length - 1]?._id;
-      socketNew.emit('isRead', { message: lastMessageId, userToken: token, role: 'seller' });
-    });
-
-    socketNew.on('new-message', newMessage => {
-      console.log('Received new message:', newMessage);
-      setChat(prev => [...prev, newMessage]);
-      setScrollToEnd(true);
-    });
-  };
-
-  const handleEve = mess => {
+  const handleEve = async (mess) => {
     if (addInput) {
       const isAdminChat = user.priority === 'admin';
       const newMessage = {
@@ -119,21 +98,43 @@ export const MessagesScreen = ({ navigation, route }) => {
         date: new Date().toISOString(),
       };
       setChat(prev => [...prev, newMessage]);
+      if (isAdminChat) {
+        const localMessages = JSON.parse(await AsyncStorage.getItem('adminChatMessages') || '[]');
+        localMessages.push(newMessage);
+        await AsyncStorage.setItem('adminChatMessages', JSON.stringify(localMessages));
+      }
       socketNew.emit(
           'sendMessage',
-          {
-            text: mess,
-            room_id: user.chatID,
-            role: 'seller',
-            ...(isAdminChat ? { isAdminChat: true } : { buyer_id: user?.user_id?._id || user._id }),
-          },
-          (response) => {
-            console.log('Server response to sendMessage:', response);
-          }
+          { text: mess, room_id: user.chatID, role: 'seller', isAdminChat },
+          (response) => console.log('Server response:', response)
       );
       setScrollToEnd(true);
-      console.log('Message emitted:', newMessage);
+      setAddInput('');
     }
+  };
+
+  const getMessageFunc = async () => {
+    socketNew.on('messages', async (messages) => {
+      const arr = messages.messages;
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i].isImage) arr[i].play = false;
+      }
+      if (user.priority === 'admin') {
+        const localMessages = JSON.parse(await AsyncStorage.getItem('adminChatMessages') || '[]');
+        const mergedMessages = [...arr, ...localMessages.filter(lm => lm.room_id === user.chatID)];
+        setChat(mergedMessages);
+      } else {
+        setChat([...arr]);
+      }
+      setVisible(false);
+      setScrollToEnd(true);
+      const lastMessageId = arr[arr.length - 1]?._id;
+      socketNew.emit('isRead', { message: lastMessageId, userToken: token, role: 'seller' });
+    });
+    socketNew.on('new-message', (newMessage) => {
+      setChat(prev => [...prev, newMessage]);
+      setScrollToEnd(true);
+    });
   };
 
   const requestCameraPermission = () => {
