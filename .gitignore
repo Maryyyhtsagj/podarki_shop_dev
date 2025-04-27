@@ -1,0 +1,7 @@
+android/app/build/
+android/build/
+ios/build/
+ios/Pods/
+*.xcworkspace
+*.xcodeproj/project.xcworkspace/
+DerivedData/
