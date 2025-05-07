@@ -21,10 +21,14 @@ import {
 import {useSelector} from 'react-redux';
 import axiosInstance from '../../../../networking/axiosInstance';
 import {getStatusBarHeight} from 'react-native-status-bar-height';
+import io from "socket.io-client";
+import {checkTokens} from "../../../../utils";
+
+let socketNew = null;
+const url = 'http://79.174.80.241:3001/api/socket/orders/seller'; //socket for upd orders
 
 export const AplicationsScreen = ({navigation}) => {
 
-  const url = 'http://79.174.80.241:3001/api/socket/orders/seller'; //socket for upd orders
 
   const sellerId = useSelector(state => {
     return state.customer?._id;
@@ -102,7 +106,7 @@ export const AplicationsScreen = ({navigation}) => {
   }, [active]);
 
   const axiosFunc = async arr => {
-    console.log('Received array:', arr);
+    // console.log('Received array:', arr);
 
     for (let i = 0; i < sort.length; i++) {
       sort[i].amount = 0;
@@ -201,16 +205,44 @@ export const AplicationsScreen = ({navigation}) => {
     setSortActive({...sort[index]});
   };
 
+  const socketConnectFunc = async () => {
+    const token = await checkTokens();
+
+    socketNew = io('http://79.174.80.241:3001/api/socket/orders/seller', {
+      query: {
+        token: `Bearer ${token}`,
+        // id: sellerId,
+      },
+    });
+    console.log('payload:', {
+      token: `Bearer ${token}`,
+      id: sellerId,
+    })
+
+    socketNew.on('connect', () => {
+      console.log('after connect')
+      socketNew.emit('join', {id: sellerId});
+    });
+
+    socketNew.on('new-order', (body) => {
+      console.log('MY', body)
+    })
+  };
+
+  useEffect(() => {
+    socketConnectFunc();
+  }, []);
+
 
   const changeStateFunc = async st => {
     setActive(st);
     try {
-      console.log('Fetching orders for store:', shop._id);
+      // console.log('Fetching orders for store:', shop._id);
       const response = await axiosInstance.post('orders/by-store', {
         store_id: shop._id,
       });
 
-      console.log('Full API response:', response.data);
+      // console.log('Full API response:', response.data);
 
       setSortActive({});
       setOrders([]);

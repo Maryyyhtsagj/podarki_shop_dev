@@ -47,6 +47,7 @@ export default function TabNavigation() {
   const homeState = useSelector(st => st.homeState)
   const dispatch = useDispatch();
   const [orders, setOrders] = useState(0);
+  const [isInit, setIsInit] = useState(false);
   const store = useSelector(st => st.customer);
   const shop = store.active_store;
 
@@ -76,19 +77,20 @@ export default function TabNavigation() {
 
   useEffect(() => {
     const socket = io.connect(
-      `http://79.174.80.241:3001/api/count/messages/seller?seller_id=${user._id}`,
+        `http://79.174.80.241:3001/api/count/messages/seller?seller_id=${user._id}`,
     );
+
     socket.on('count', data => {
       console.log('messCount', data);
       dispatch({type: SET_MESSAGES_COUNT, payload: data.count})
     });
 
+    if (!isInit) setIsInit(true) // to fix socket.on('count') it works properly only after second call
+
     return () => {
       socket.disconnect()
     }
-  }, [user?._id])
-
-
+  }, [user?._id, isInit])
 
 
   const [keyboardStatus, setKeyboardStatus] = useState();

@@ -57,7 +57,7 @@ export const ChatScreen = ({ navigation, route }) => {
         try {
             setLoading(true);
             const response = await axiosInstance.get('/chat/im');
-            console.log('Chat list response:', response.data);
+            // console.log('Chat list response:', response.data);
             setData(response.data);
             changeStateFunc('За сегодня', response.data);
         } catch (e) {

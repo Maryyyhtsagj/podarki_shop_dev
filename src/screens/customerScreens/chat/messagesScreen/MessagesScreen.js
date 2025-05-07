@@ -53,8 +53,9 @@ export const MessagesScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     setTokFunc();
-    socketConnectFunc();
+    // socketConnectFunc();
     return () => {
+      console.log('HERE, useEffect')
       if (socketNew) {
         socketNew.disconnect();
       }
@@ -65,6 +66,9 @@ export const MessagesScreen = ({ navigation, route }) => {
     setVisible(true);
     let token = await checkTokens();
     setToken(token);
+    console.log({token})
+
+    socketConnectFunc(token);
     socketConnectFunc(token);
   };
 
@@ -78,10 +82,19 @@ export const MessagesScreen = ({ navigation, route }) => {
         roomId: user.chatID,
       },
     });
+    console.log(1111111, {
+      query: {
+        token: token,
+        seller_id: store._id,
+        ...(isAdminChat ? { role: 'seller', isAdminChat: true } : { buyer_id: user?.user_id?._id || user._id }),
+        roomId: user.chatID,
+      },
+    })
     socketNew.on('connect', () => {
       socketNew.emit('getMessage');
     });
-    getMessageFunc();
+    console.log('getMessageFunc();')
+    getMessageFunc()
   };
 
   const handleEve = async (mess) => {
@@ -98,14 +111,15 @@ export const MessagesScreen = ({ navigation, route }) => {
         date: new Date().toISOString(),
       };
       setChat(prev => [...prev, newMessage]);
-      if (isAdminChat) {
+      /*if (isAdminChat) {
         const localMessages = JSON.parse(await AsyncStorage.getItem('adminChatMessages') || '[]');
         localMessages.push(newMessage);
         await AsyncStorage.setItem('adminChatMessages', JSON.stringify(localMessages));
-      }
+      }*/
+      console.log(1111, { text: mess, room_id: user.chatID, role: 'seller', is_admin_chat: isAdminChat })
       socketNew.emit(
           'sendMessage',
-          { text: mess, room_id: user.chatID, role: 'seller', isAdminChat },
+          { text: mess, room_id: user.chatID, role: 'seller', is_admin_chat: isAdminChat },
           (response) => console.log('Server response:', response)
       );
       setScrollToEnd(true);
@@ -115,6 +129,7 @@ export const MessagesScreen = ({ navigation, route }) => {
 
   const getMessageFunc = async () => {
     socketNew.on('messages', async (messages) => {
+      console.log('socketNew.on(\'messages\')')
       const arr = messages.messages;
       for (let i = 0; i < arr.length; i++) {
         if (arr[i].isImage) arr[i].play = false;
@@ -132,6 +147,7 @@ export const MessagesScreen = ({ navigation, route }) => {
       socketNew.emit('isRead', { message: lastMessageId, userToken: token, role: 'seller' });
     });
     socketNew.on('new-message', (newMessage) => {
+      console.log('socketNew.on(\'new-message\')', newMessage)
       setChat(prev => [...prev, newMessage]);
       setScrollToEnd(true);
     });
@@ -142,7 +158,7 @@ export const MessagesScreen = ({ navigation, route }) => {
       console.log('Requesting camera permission...');
       ChooseImage(async imageRes => {
         if (!imageRes.didCancel) {
-          console.log('Sending image:', imageRes.assets[0].base64);
+          console.log('Sending image...');
           socketNew.emit(
               'send-img',
               `data:image/png;base64,${imageRes.assets[0].base64}`,

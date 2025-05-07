@@ -616,6 +616,16 @@ export const SignupScreen = ({navigation, route}) => {
     let checkToken = await getFcmToken();
     console.log(' await Fcm Token:', checkToken);
 
+    console.log({
+      url: 'http://79.174.80.241:3001/api/users/fcm',
+      body: {
+        is_seller: 'true',
+        token: checkToken,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
     try {
       const res = await axios.post(
         'http://79.174.80.241:3001/api/users/fcm',
